@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1c23">
+<title>Война Цивилизаций</title>
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<div id="start-screen">
+  <div id="start-box">
+    <h1>⚔ Война Цивилизаций</h1>
+    <div class="sub">Пошаговая стратегия • Выберите сложность</div>
+    <div class="diff-block">
+      <h3>Количество соперников (ИИ): <span id="players-count-label">3</span></h3>
+      <input type="range" id="players-slider" min="3" max="30" value="3" oninput="updatePlayersCount()">
+      <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)"><span>3</span><span>30</span></div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:4px;text-align:center">Итого цивилизаций: <span id="total-civs-label">4</span> (вы + ИИ)</div>
+    </div>
+    <div class="diff-block">
+      <h3>Сложность соперников (ИИ)</h3>
+      <div class="diff-options" id="ai-diff">
+        <button class="diff-btn" data-val="easy" onclick="setDiff('ai','easy')">Легко<span class="desc">Реже атакуют</span></button>
+        <button class="diff-btn active" data-val="normal" onclick="setDiff('ai','normal')">Средне<span class="desc">Сбалансированно</span></button>
+        <button class="diff-btn" data-val="hard" onclick="setDiff('ai','hard')">Сложно<span class="desc">Агрессивны</span></button>
+      </div>
+    </div>
+    <div class="diff-block">
+      <h3>Сложность варваров</h3>
+      <div class="diff-options" id="barb-diff">
+        <button class="diff-btn" data-val="easy" onclick="setDiff('barb','easy')">Легко<span class="desc">Мало стойбищ</span></button>
+        <button class="diff-btn active" data-val="normal" onclick="setDiff('barb','normal')">Средне<span class="desc">Обычная активность</span></button>
+        <button class="diff-btn" data-val="hard" onclick="setDiff('barb','hard')">Сложно<span class="desc">Больше варваров</span></button>
+      </div>
+    </div>
+    <div class="diff-block">
+      <h3>Размер карты</h3>
+      <div class="diff-options" id="map-size">
+        <button class="diff-btn active" data-val="small" onclick="setMapSize('small')">Маленькая<span class="desc">24×16</span></button>
+        <button class="diff-btn" data-val="medium" onclick="setMapSize('medium')">Средняя<span class="desc">48×32</span></button>
+        <button class="diff-btn" data-val="large" onclick="setMapSize('large')">Большая<span class="desc">96×64</span></button>
+      </div>
+    </div>
+    <div class="diff-block">
+      <h3>Варвары</h3>
+      <button type="button" id="no-barb-btn" class="diff-btn" style="width:100%;padding:12px" onclick="toggleNoBarbs()">
+        Игра без варваров<span class="desc" id="no-barb-desc">Варвары включены</span>
+      </button>
+    </div>
+    <button id="start-play" onclick="startGame()">Начать войну</button>
+  </div>
+</div>
+<div id="main-menu" onclick="if(event.target===this)closeMainMenu()">
+  <div id="main-menu-card">
+    <div id="main-menu-title">☰ Меню</div>
+    <button class="success" onclick="menuSaveGame()">💾 Сохранить</button>
+    <button onclick="menuLoadGame()">📂 Загрузить</button>
+    <button class="gold-btn" onclick="menuNewGame()">🆕 Новая игра</button>
+    <button id="main-menu-close" onclick="closeMainMenu()">Закрыть</button>
+  </div>
+</div>
+<div id="tile-info" onclick="if(event.target===this)closeTileInfo()">
+  <div id="tile-info-card">
+    <div id="tile-info-art">🌿</div>
+    <div id="tile-info-body">
+      <div id="tile-info-title">Клетка</div>
+      <div id="tile-info-coords">x:0 y:0</div>
+      <div id="tile-info-desc"></div>
+      <div id="tile-info-units"></div>
+      <div id="tile-info-extra"></div>
+      <button id="tile-info-city-btn" onclick="goToCity()" style="display:none">🏛 Перейти в город</button>
+      <button id="tile-info-close" onclick="closeTileInfo()">Закрыть</button>
+    </div>
+  </div>
+</div>
+<div id="city-panel" onclick="if(event.target===this)closeCityPanel()">
+  <div id="city-panel-card">
+    <div id="city-panel-head">
+      <div id="city-panel-icon">🏛</div>
+      <div>
+        <div id="city-panel-title">Город</div>
+        <div id="city-panel-coords">x:0 y:0</div>
+        <div id="city-panel-capital-tag" style="display:none">👑 СТОЛИЦА</div>
+      </div>
+    </div>
+    <div id="city-panel-gold-row">
+      <span>💰 Золото в городе:</span>
+      <strong id="city-panel-gold">0</strong>
+      <span id="city-panel-income" style="color:#4ade80;font-size:.8rem">(+0/ход)</span>
+    </div>
+    <div id="city-panel-section-title">Юниты в городе</div>
+    <div id="city-panel-units"></div>
+    <div id="city-panel-section-title">Производство</div>
+    <div id="city-panel-prod"></div>
+    <div id="city-panel-actions"></div>
+    <button id="city-panel-close" onclick="closeCityPanel()">Закрыть</button>
+  </div>
+</div>
+<div id="army-modal" onclick="if(event.target===this)closeArmyModal()">
+  <div id="army-modal-card">
+    <div id="army-modal-title">🟣 Армия</div>
+    <div class="army-total-str" id="army-modal-total-str" style="display:none">Сила армии: 0</div>
+    <div class="army-limit-tag" id="army-modal-limit">Максимум 5 юнитов</div>
+    <div id="army-modal-units"></div>
+    <div id="army-modal-actions"></div>
+    <button id="army-modal-close" onclick="closeArmyModal()">Закрыть</button>
+  </div>
+</div>
+<div id="army-create-modal" onclick="if(event.target===this)closeArmyCreateModal()" style="display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:16px">
+  <div style="width:min(420px,100%);background:#172033;border:1px solid #8b5cf6;border-radius:14px;padding:20px;box-shadow:0 18px 60px #0009">
+    <div style="font-size:1.15rem;font-weight:800;margin-bottom:10px">🟣 Создать Армию?</div>
+    <div style="color:#cbd5e1;font-size:.9rem;margin-bottom:12px">Два юнита объединятся в одну Армию. Укажите её название:</div>
+    <input id="army-create-name" maxlength="32" placeholder="Название Армии" style="width:100%;box-sizing:border-box;padding:11px;border-radius:8px;border:1px solid #64748b;background:#0f172a;color:#fff;font-size:1rem;margin-bottom:14px">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="confirmArmyCreate(false)" style="background:#475569;color:white;border:0;border-radius:8px;padding:10px 16px">Нет</button>
+      <button onclick="confirmArmyCreate(true)" style="background:#7c3aed;color:white;border:0;border-radius:8px;padding:10px 16px;font-weight:700">Да, создать</button>
+    </div>
+  </div>
+</div>
+<div id="tech-modal" onclick="if(event.target===this)closeTechModal()">
+  <div id="tech-modal-card">
+    <div id="tech-modal-title">🔬 Исследование технологий</div>
+    <div id="tech-modal-current">Нет исследований</div>
+    <div class="progress-bar" id="tech-modal-bar-wrap" style="display:none"><div class="progress-fill" id="tech-modal-bar" style="width:0%"></div></div>
+    <div id="tech-modal-list"></div>
+    <button id="tech-modal-close" onclick="closeTechModal()">Закрыть</button>
+  </div>
+</div>
+<div id="event-modal">
+  <div id="event-box">
+    <div id="event-icon">🔬</div>
+    <div id="event-title">Событие</div>
+    <div id="event-body">Описание</div>
+    <input id="event-input" type="text" maxlength="24" placeholder="Введите название..." />
+    <button id="event-close" onclick="closeEventModal()">Закрыть</button>
+  </div>
+</div>
+<div id="combat-overlay">
+  <div id="combat-stage">
+    <div id="combat-title">⚔ СРАЖЕНИЕ</div>
+    <div id="combat-teams">
+      <div id="combat-team-left">Атакующие</div>
+      <div id="combat-team-right">Защитники</div>
+    </div>
+    <div id="combat-field"></div>
+    <div id="combat-hp-bars">
+      <div class="combat-hp-wrap">
+        <div class="combat-hp-label" id="hp-label-left">ОЗ: 100%</div>
+        <div class="combat-hp-track"><div class="combat-hp-fill left" id="hp-fill-left" style="width:100%"></div></div>
+      </div>
+      <div class="combat-hp-wrap">
+        <div class="combat-hp-label" id="hp-label-right" style="text-align:right">ОЗ: 100%</div>
+        <div class="combat-hp-track"><div class="combat-hp-fill right" id="hp-fill-right" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div id="combat-log-line">Бой начинается...</div>
+  </div>
+  <button id="combat-skip" onclick="skipCombat()">Пропустить бой ▶</button>
+</div>
+<div id="game-header">
+  <h1>⚔ Война Цивилизаций</h1>
+  <div class="subtitle">ЛКМ — выбор • ПКМ — инфо клетки • Пинч — зум</div>
+  <div class="header-actions">
+    <button onclick="toggleFullscreen()" id="fs-btn">⛶ Развернуть</button>
+    <button onclick="toggleCompactMode()" id="compact-btn" class="success">📱 Компактно</button>
+    <button onclick="toggleGameSidebar()" id="sidebar-toggle-btn">☷ Панель</button>
+  </div>
+</div>
+<div id="turn-banner"></div>
+<div id="game-container">
+  <div id="map-wrapper">
+    <div id="map-viewport"><canvas id="map-canvas"></canvas></div>
+  </div>
+  <div id="sidebar">
+    <button id="sidebar-hide-btn" onclick="toggleGameSidebar()">Скрыть панель ✕</button>
+    <div class="panel">
+      <h3>Ход <span id="turn-num">1</span></h3>
+      <div class="stat-row"><span class="stat-label">Ходит:</span><span id="current-civ" class="civ-player">Северная Империя</span></div>
+      <div class="stat-row"><span class="stat-label">Сложность:</span><span id="diff-label" style="font-size:.75rem;color:var(--muted)">ИИ: средне / Варвары: средне</span></div>
+      <div class="btn-group" style="margin-top:6px">
+        <button class="end-turn-btn" onclick="endTurn()">Завершить ход</button>
+        <button class="tech-open-btn" onclick="openTechModal()">🔬 Исследование технологий</button>
+        <button class="menu-btn" onclick="openMainMenu()">☰ Меню</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Твои силы</h3>
+      <div class="stat-row"><span class="stat-label">👑 Казна:</span><span id="player-treasury" style="color:var(--gold);font-weight:700">0</span></div>
+      <div class="stat-row"><span class="stat-label">💰 В городах:</span><span id="player-city-gold" style="color:var(--gold)">0</span></div>
+      <div class="stat-row"><span class="stat-label">Доход:</span><span id="player-city-income" style="color:#4ade80">(+0/ход)</span></div>
+      <div class="stat-row"><span class="stat-label">Наука:</span><span id="player-science">0</span> <span style="color:var(--muted);font-size:.7rem" id="science-per-turn">(+0)</span></div>
+      <div class="stat-row"><span class="stat-label">Исслед.:</span><span id="player-research" style="font-size:.75rem;color:var(--tech)">—</span></div>
+      <div class="stat-row"><span class="stat-label">Городов:</span><span id="player-cities">1</span></div>
+      <div class="stat-row"><span class="stat-label">Юнитов:</span><span id="player-units">3</span></div>
+    </div>
+    <div class="panel">
+      <h3>Журнал</h3>
+      <div class="log-filters" id="log-filters">
+        <button type="button" class="log-filter-btn active" data-filter="all" onclick="setLogFilter('all')">Все</button>
+        <button type="button" class="log-filter-btn active" data-filter="combat" onclick="setLogFilter('combat')">Бой</button>
+        <button type="button" class="log-filter-btn active" data-filter="good" onclick="setLogFilter('good')">Успех</button>
+        <button type="button" class="log-filter-btn active" data-filter="info" onclick="setLogFilter('info')">Инфо</button>
+        <button type="button" class="log-filter-btn active" data-filter="army" onclick="setLogFilter('army')">Армия</button>
+        <button type="button" class="log-filter-btn active" data-filter="tech" onclick="setLogFilter('tech')">Наука</button>
+        <button type="button" class="log-filter-btn active" data-filter="capture" onclick="setLogFilter('capture')">Захват</button>
+        <button type="button" class="log-filter-btn active" data-filter="barb" onclick="setLogFilter('barb')">Варвары</button>
+        <button type="button" class="log-filter-btn active" data-filter="fort" onclick="setLogFilter('fort')">Крепость</button>
+        <button type="button" class="log-filter-btn active" data-filter="gold" onclick="setLogFilter('gold')">Золото</button>
+      </div>
+      <div id="log"></div>
+    </div>
+    <div class="panel" id="selected-panel">
+      <h3>Выбрано</h3>
+      <div id="selected-info" style="color:var(--muted);font-size:.8rem">ЛКМ — выбор • ПКМ — инфо клетки</div>
+      <div id="actions" class="btn-group" style="margin-top:5px;display:none"></div>
+      <div class="hint" id="hint-text"></div>
+    </div>
+  </div>
+</div>
+<div id="floating-bar">
+  <button id="fb-turn" class="end-turn-btn" onclick="endTurn()">Ход</button>
+  <button id="fb-actions" class="success" onclick="scrollToSidebar()">Действия</button>
+  <button id="fb-sidebar" onclick="toggleGameSidebar()">☷ Панель</button>
+  <button id="fb-menu" onclick="openMainMenu()">☰</button>
+</div>
+<div id="drawer-overlay" onclick="if(event.target===this)closeSidebarDrawer()">
+  <div id="drawer-panel"></div>
+</div>
+<div id="victory-screen">
+  <div id="victory-box">
+    <h2 id="victory-title">Победа!</h2>
+    <p id="victory-text" style="margin:10px 0;color:var(--muted)"></p>
+    <button class="success" onclick="backToMenu()">В меню</button>
+  </div>
+</div>
+<script src="js/game.js"></script>
+</body>
+</html>
